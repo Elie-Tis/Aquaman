@@ -5,7 +5,7 @@ import Calc_goujon as cg
 
 
 st.set_page_config(layout="wide", initial_sidebar_state ="expanded")
-st.title("Outil de prédimensionnement (Git_)")
+st.title("Outil de prédimensionnemtttttttent (Git_)")
 
 with st.sidebar:
     st.header("Objectifs")
