@@ -127,7 +127,7 @@ V_max = min(V_max_joint, V_max_sem) if gaine == "Biaxiale" else V_max_joint
 nb_gouj_m = V_cible_elu / V_max
 dist_gouj = V_max / V_cible_elu
 st.info(f"Effort ELU max admissible pour le goujon : **{round(V_max,2)} kN**, soit une distance entre goujons de **{round(dist_gouj, 2)} m**"
-        f" ou **{nb_gouj_m} goujon(s)** par mètre")
+        f" ou **{round(nb_gouj_m,2)} goujon(s)** par mètre")
 
 col_im1, colim2, colim3, colim4 = st.columns([0.6, 1, 1, 0.6], vertical_alignment="bottom")
 col_im1.image( lien_image_delta, )
