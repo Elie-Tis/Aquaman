@@ -124,7 +124,9 @@ if gaine == "Biaxiale":
             st.error("La semelle supérieure ne permet pas de reprendre les efforts cible", icon="❌")
 
 V_max = min(V_max_joint, V_max_sem) if gaine == "Biaxiale" else V_max_joint
-st.info(f"Effort ELU max admissible pour le goujon : **{round(V_max,2)}** kN")
+nb_gouj_m = V_cible_elu / V_max
+dist_gouj = V_max / V_cible_elu
+st.info(f"Effort ELU max admissible pour le goujon : **{round(V_max,2)}** kN, soit 1 goujon tous les {dist_gouj} m")
 
 col_im1, colim2, colim3, colim4 = st.columns([0.6, 1, 1, 0.6], vertical_alignment="bottom")
 col_im1.image( lien_image_delta, )
