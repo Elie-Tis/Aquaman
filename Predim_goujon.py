@@ -7,7 +7,7 @@ lien_image_delta = "Imagedelta.png"
 lien_image_Vrds = "Image_vrds.png"
 lien_image_sem = "Image_semelle.png"
 
-st.set_page_config(layout="wide", initial_sidebar_state ="expanded")
+st.set_page_config(layout="wide", initial_sidebar_state ="expanded", page_title= "Predim Aquaman")
 st.title("Outil de prédimensionnement (V.Git_V2)")
 
 with st.sidebar:
