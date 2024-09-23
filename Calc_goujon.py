@@ -139,17 +139,21 @@ def calc_Vrks(M_pl, V_pl, t, e):
 
     return V_rks
 
-def calc_def_axe(E, I, t, e, V_els,):
+def calc_def_axe(E, I, t, e, V_els, d_max):
     b_l = (t+ 2*e) # en mm
-    d = V_els *10**3 * b_l**3 / (3 * E* I)
-    return d # en mm
+    d = V_els *10**3 * b_l**3 / (3 * E* I) # en mm
+    V_max_ELS = d_max * 3*E*I / b_l**3 * 10**-3  # Effort ELS correspondant au déplacement max
+    V_max_ELU = V_max_ELS * 1.4 # Effort max ELU correspondant au déplacement max
+    return d, V_max_ELU
 
 def calc_fat_axe(V_els, t, e, V_pl, M_pl):
     b_l = (t + 2*e) * 10**-3 # en m
     M_els = V_els * b_l   # en kN.m
     taux_min = min(V_pl / V_els, M_pl / M_els)
+    V_max_ELS = V_els * taux_min
+    V_max_ELU = V_max_ELS * 1.4
     verif = True if round(taux_min,2) >= 1 else False
-    return taux_min, verif
+    return taux_min, verif, V_max_ELU
 
 def verif_axe(axe, t, L, beta, d_max, X0, gamma_s, V_elu, rho):
     # On récupére les caractéristiques de l'axe
@@ -163,14 +167,14 @@ def verif_axe(axe, t, L, beta, d_max, X0, gamma_s, V_elu, rho):
     V_els = V_elu / 1.4
     M_els = V_els * (t+2*e)
     # Calcul des déformation dans l'axe et vérification
-    d = calc_def_axe(caract["E"], caract["I"], t, e, V_els)
+    d, V_max_d = calc_def_axe(caract["E"], caract["I"], t, e, V_els, d_max)
     verif_def = True if d <= d_max else False
     # Calcul de la fatigue et vérifiation
-    tau_fat, verif_fat = calc_fat_axe(V_els, t, e, caract["V_pl"], caract["M_pl"])
+    tau_fat, verif_fat, V_max_fat = calc_fat_axe(V_els, t, e, caract["V_pl"], caract["M_pl"])
     verif_axe = verif_Vrds * verif_def * verif_fat
     # Rajout des caractéristique calculés dans le dict
-    var = [V_Rks, V_Rds, verif_Vrds, V_els, M_els, d, verif_def, tau_fat, verif_fat, verif_axe]
-    keys = ["V_Rks", "V_Rds", "verif_Vrds","V_els", "M_els", "d", "verif_def", "tau_fat", "verif_fat", "verif_axe"]
+    var = [V_Rks, V_Rds, verif_Vrds, V_els, M_els, d, verif_def, V_max_d, tau_fat, verif_fat, V_max_fat, verif_axe]
+    keys = ["V_Rks", "V_Rds", "verif_Vrds","V_els", "M_els", "d", "verif_def", "V_max_d", "tau_fat", "verif_fat", "V_max_fat","verif_axe"]
     dict_var = dict(zip(keys, var))
     caract.update(dict_var)
     df_caract = pd.DataFrame(caract)
@@ -180,33 +184,41 @@ def verif_axe(axe, t, L, beta, d_max, X0, gamma_s, V_elu, rho):
     df_caract["V_ELU"] = V_elu
     df_caract["d_max"] = d_max
     df_caract["tau_d"] = df_caract["d"].apply(lambda x: d_max / x)
-    df_caract["Volume"] = df_caract["A"] * (L + 35 + 90)  # Volume du pfofilé en mm3
+    df_caract["Volume"] = df_caract["A"] * (L + 35 + 90)  # Volume du profilé en mm3
     df_caract["Masse"] = df_caract["Volume"] * rho * 10**-9  # Masse du profilé en kg
 
+    V_Rds = df_caract.loc[0, "V_Rds"]
+    V_max = min(V_Rds, V_max_d, V_max_fat)
 
-    return verif_axe, df_caract
+    return verif_axe, df_caract, V_max
 
 
 def verif_Mpl_semelle(M_pl, nb_rotule, V_elu, delta_lat, X0, gamma_s):
     V_rot = V_elu * gamma_s / X0 / nb_rotule
     M_rot = V_rot * (delta_lat) * 10 ** -3  # En kN.m moment à reprendre dans chaque rotule
+    V_rot_max = M_pl / (delta_lat * 10**-3)
+    V_max = V_rot_max * X0 * nb_rotule / gamma_s  # Effort max de reprise à l'ELU
     verif = round(M_rot,2) <= round(M_pl,2)
-    dic = {"M_pl": M_pl, "M_rot": M_rot, "verif_Mpl": verif}
+    dic = {"M_pl": M_pl, "M_rot": M_rot, "verif_Mpl": verif, "V_max_rot": V_max,}
 
     return dic
 
 
-def calc_def_semelle(E, I, nb_rotule, V_els, delta_lat):
+def calc_def_semelle(E, I, nb_rotule, V_els, delta_lat, d_max):
     d = (V_els * 10 ** 3 / nb_rotule) * (delta_lat) ** 3 / (3 * E * I)
-    return d
+    V_max_ELS = d_max / delta_lat**3 * (3*E*I) * nb_rotule / 10**3  # Effort max pour le déplacement max à l'ELS
+    V_max_ELU = V_max_ELS * 1.4  # Effort equivalent à l'ELU
+    return d, V_max_ELU
 
 
 def calc_fat_semelle(V_els, delta_lat, M_pl, nb_rotule):
     M_els = V_els * delta_lat * 10 ** -3 / nb_rotule # en kN.m
     taux_min = M_pl / M_els
+    V_max_ELS = M_pl * nb_rotule / delta_lat * 10**3
+    V_max_ELU = V_max_ELS * 1.4
     print(M_els)
     verif = True if taux_min >= 1 else False
-    return taux_min, verif
+    return taux_min, verif, V_max_ELU
 
 
 def calc_caract_semelle(semelle, L_gaine, beta, ):
@@ -234,12 +246,12 @@ def verif_semelle(semelle, nb_rotule, L_gaine, beta, delta_lat, V_elu, d_max, X0
     M_els = V_els * delta_lat * 10 ** -3 / nb_rotule
     dict_verif_Mpl = verif_Mpl_semelle(M_pl, nb_rotule=nb_rotule, V_elu=V_elu, delta_lat=delta_lat, X0=X0, gamma_s=gamma_s)
     M_rot = dict_verif_Mpl["M_rot"]
-    d = calc_def_semelle(E, I, nb_rotule, V_els, delta_lat)
+    d, V_max_d = calc_def_semelle(E, I, nb_rotule, V_els, delta_lat, d_max)
     verif_d = bool(d <= d_max)
-    tau_fat, verif_fat = calc_fat_semelle(V_els, delta_lat, M_pl, nb_rotule=nb_rotule)
+    tau_fat, verif_fat, V_max_fat = calc_fat_semelle(V_els, delta_lat, M_pl, nb_rotule=nb_rotule)
     verif_semelle = bool(dict_verif_Mpl["verif_Mpl"] * verif_d * verif_fat)
-    var = [nb_rotule, M_rot, d, verif_d, M_els, tau_fat, verif_fat, verif_semelle]
-    keys = ["nb_rotule", "M_rot", "d", "verif_d", "M_els", "tau_fat", "verif_fat", "verif_semelle"]
+    var = [nb_rotule, M_rot, d, verif_d,V_max_d, M_els, tau_fat, verif_fat, V_max_fat, verif_semelle]
+    keys = ["nb_rotule", "M_rot", "d", "verif_d", "V_max_d", "M_els", "tau_fat", "verif_fat", 'V_max_fat', "verif_semelle"]
     dict_var = dict(zip(keys, var))
     caract.update(dict_var)
     caract.update(dict_verif_Mpl)
@@ -249,4 +261,15 @@ def verif_semelle(semelle, nb_rotule, L_gaine, beta, delta_lat, V_elu, d_max, X0
     df_caract["tau_M"] = df_caract["M_rot"].apply(lambda x: round(M_pl / x, 1))
     df_caract["tau_d"] = df_caract["d"].apply(lambda x: d_max / x)
 
-    return verif_semelle, df_caract
+    V_max_rot = df_caract.loc[0, "V_max_rot"]
+    V_max = min(V_max_rot, V_max_d, V_max_fat)
+
+    return verif_semelle, df_caract, V_max
+
+def caract_prod(df_caract_axe, df_caract_sem):
+    V_min_axe = df_caract_axe[["V_Rds", "V_max_d", "V_max_fat"]].min()
+    print(V_min_axe)
+    V_min_sem = df_caract_sem[["V_max_rot", "V_max_d", "V_max_fat"]].min()
+    V_min_prod = min(V_min_axe, V_min_sem)
+
+    return V_min_prod, V_min_axe, V_min_sem
