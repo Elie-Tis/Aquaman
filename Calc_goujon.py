@@ -216,7 +216,6 @@ def calc_fat_semelle(V_els, delta_lat, M_pl, nb_rotule):
     taux_min = M_pl / M_els
     V_max_ELS = M_pl * nb_rotule / delta_lat * 10**3
     V_max_ELU = V_max_ELS * 1.4
-    print(M_els)
     verif = True if taux_min >= 1 else False
     return taux_min, verif, V_max_ELU
 
