@@ -134,3 +134,5 @@ col_im1.image( lien_image_delta, )
 colim2.image(lien_image_L_t)
 colim3.image(lien_image_Vrds)
 colim4.image(lien_image_sem)
+
+st.dataframe(df_caract_joint)

@@ -133,9 +133,10 @@ def calc_caract(axe):
 
 
 def calc_Vrks(M_pl, V_pl, t, e):
-    bras_levier = (t + 2 * e) * 10 ** -3  # bras de levier en mm
+    bras_levier = (t + 2 * e) * 10 ** -3  # bras de levier en m
     inter = lambda V_rks: (V_rks / V_pl) ** 2 + (V_rks * bras_levier / (2 * M_pl)) ** 2 - 1  # Equation Interaction CSTB
     V_rks = fsolve(inter, V_pl)[0]  # On résolve l'équation
+    print(e)
 
     return V_rks
 
@@ -159,7 +160,7 @@ def verif_axe(axe, t, L, beta, d_max, X0, gamma_s, V_elu, rho):
     # On récupére les caractéristiques de l'axe
     caract = calc_caract(axe)
     # Calcul e l'effort atteint ELU et vérification$
-    e = L / (3*beta)
+    e = L / (3*beta) / 2  # Distance du fixing point au bord du béton
     V_Rks = calc_Vrks(caract["M_pl"], caract["V_pl"], t, e,)
     V_Rds = V_Rks * X0 / gamma_s
     verif_Vrds = V_Rds >= V_elu
